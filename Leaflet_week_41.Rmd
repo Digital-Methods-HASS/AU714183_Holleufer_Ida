@@ -1,0 +1,141 @@
+---
+title: "Leaflet_week_41"
+author: "Ida Bolther Holleufer"
+date: "2023-10-12"
+output: html_document
+---
+# Installing packages
+
+```{r packages}
+#install.packages("leaflet")
+#install.packages("htmlwidgets")
+
+library(leaflet)
+library(htmlwidgets)
+```
+
+# Task 1. Create a Danish equivalent of AUSmap with esri layer but call it DANmap
+
+### first do i have to create a location point
+```{r location point}
+popup2 = c("Copenhagen", "Odense", "Aarhus")
+```
+
+### Now that i have my lacation point, can i use leaflet to create a map.
+
+```{r leaflet}
+leaflet() %>%
+  addTiles() %>%
+  addProviderTiles("Esri.WorldImagery",
+                   options = providerTileOptions(opacity=0.5)) %>%
+  setView(lng = 10.21076, lat = 56.15674, zoom = 10)
+                
+```
+
+### To create a map, do i have to do the steps below. 
+
+```{r basemap}
+l_dk <- leaflet() %>%   
+  setView(10.21076, 56.15674, zoom = 13)
+```
+
+Now do i have to select backgrounds
+```{r backgrounds}
+esri <- grep("^Esri", providers, value = TRUE)
+```
+
+Selecting background
+```{r selecting a background}
+for (provider in esri) {
+  l_dk<- l_dk %>% addProviderTiles(provider, group = provider)
+}
+```
+
+Now can i create a map
+```{r DANmap}
+DANmap <- l_dk %>%
+  addLayersControl(baseGroups = names(esri),
+                   options = layersControlOptions(collapsed = FALSE)) %>%
+  addMiniMap(tiles = esri[[1]], toggleDisplay = TRUE,
+             position = "bottomright") %>%
+  addMeasure(
+    position = "bottomleft",
+    primaryLengthUnit = "meters",
+    primaryAreaUnit = "sqmeters",
+    activeColor = "#3D535D",
+    completedColor = "#7D4479") %>% 
+  htmlwidgets::onRender("
+                        function(el, x) {
+                        var myMap = this;
+                        myMap.on('baselayerchange',
+                        function (e) {
+                        myMap.minimap.changeLayer(L.tileLayer.provider(e.name));
+                        })
+                        }") %>% 
+  addControl("", position = "topright")
+
+DANmap
+```
+```{r libraries}
+library(tidyverse)
+library(googlesheets4)
+library(leaflet)
+```
+Places in a google sheet
+```{r places}
+places <- read_sheet("https://docs.google.com/spreadsheets/d/1PlxsPElZML8LZKyXbqdAYeQCDIvDps2McZx1cTVWSzI/edit#gid=124710918",
+                     range = "DigitalMethods",
+                     col_types = "cccnncnc")
+
+googlesheets4::gs4_deauth()
+googlesheets4::gs4_auth()
+
+glimpse(places)
+```
+
+# Task 2. Read in the googlesheet data you and your colleagues populated with data into the DANmap object you created in Task 1
+
+```{r DANmap with markers}
+DANmap %>% 
+  addMarkers(lng = places$Longitude, 
+             lat = places$Latitude,
+             popup = places$Description)
+```
+
+
+# Task 3: Can you cluster the points in Leaflet? Google "clustering options in Leaflet"
+To be able to cluster the points shown in Leaflet, can i use the clusterOption. 
+
+```{r cluster}
+DANmap %>% 
+  addMarkers(lng = places$Longitude, 
+             lat = places$Latitude,
+             popup = places$Description, 
+             clusterOptions = markerClusterOptions())
+```
+
+# Task 4: Look at the map and consider what it is good for and what not.
+The map is good for a overview over the different citys location.
+When zooming out, does the points cluster as we ask them to in task 3. This can make it hart to give a precise location, because to get that do we have to zoom in
+When clustering the is map counting how many points there is. 
+What the map doesn't show is ...
+
+# Task 5: Find out how to display notes and classifications in the map.
+
+In the previous task have i all ready createt notes, so that when i click on the points on the map, can i see what the point shows. 
+
+If i want to add popups, a popup is a small box of information, containing arbitrary HTML, that will point to a specific point on the map, can i use the code
+
+Danmark %>% 
+addPopups([KOORDINATES]), [CONTENT],
+options = popupOptions(closeButton = False)
+
+The [] means that when you uses the code, do you have to change the information. 
+So you have to use your own koordinates, and create your own content. 
+To create a content, can i use the code
+
+content <-paste(sep = "<br>",
+  "<b><a> href='[link]'> [name of place]</a></b>",
+  "[street and streat number]",
+  "[city], [city code]")
+
